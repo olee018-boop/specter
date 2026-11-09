@@ -159,7 +159,7 @@
   },
   "preRoll": {
     "enabled": true,
-    "seconds": 5,
+    "seconds": 2,
     "everySeconds": 0
   }
 }

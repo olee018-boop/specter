@@ -3011,7 +3011,7 @@
                     <strong id="zoneName">Game</strong>
                 </div>
                 <div class="zone-controls">
-                    <button class="zone-control-btn" id="zoneFullscreenBtn" onclick="fullscreenZone()">Fullscreen</button>
+                    <button class="zone-control-btn" id="zoneFullscreenBtn" onclick="fullscreenZone()">Enter fullscreen</button>
                     <button class="zone-control-btn" onclick="downloadZone()">Download</button>
                     <button class="zone-control-btn" onclick="closeZone()">Close</button>
                 </div>
@@ -3024,6 +3024,10 @@
                     <div class="zone-frame-wrap">
                         <iframe id="zoneFrame" allowfullscreen allow="fullscreen; autoplay; gamepad; accelerometer; gyroscope; pointer-lock"></iframe>
                         <div class="zone-loading" id="zoneLoading" hidden><span class="zone-spinner" aria-hidden="true"></span></div>
+                        <button type="button" class="zone-enter-fullscreen" id="zoneEnterFullscreen" onclick="fullscreenZone()" aria-label="Enter fullscreen">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M16 3h3a2 2 0 0 1 2 2v3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/><path d="M8 21H5a2 2 0 0 1-2-2v-3"/></svg>
+                            <span>Enter fullscreen</span>
+                        </button>
                     </div>
                     <div class="zone-bottom-ad">
                         <div class="ad-slot" data-ad-slot="game-bottom" aria-label="Advertisement"></div>
@@ -3040,12 +3044,12 @@
                 <div class="game-preroll-card">
                     <div class="game-preroll-head">
                         <span class="game-preroll-kicker">Advertisement</span>
-                        <span class="game-preroll-count" id="gamePrerollCount" aria-live="polite">5</span>
+                        <span class="game-preroll-count" id="gamePrerollCount" aria-live="polite">2</span>
                     </div>
                     <div class="ad-slot ad-slot--preroll" id="gamePrerollSlot"></div>
                     <div class="game-preroll-foot">
                         <span class="game-preroll-name" id="gamePrerollName"></span>
-                        <button type="button" class="game-preroll-skip" id="gamePrerollSkip" onclick="gamesSkipPreroll()" disabled>Starting in 5s</button>
+                        <button type="button" class="game-preroll-skip" id="gamePrerollSkip" onclick="gamesSkipPreroll()" disabled>Starting in 2s</button>
                     </div>
                     <p class="game-preroll-note">Ads keep every game free. The game is already loading behind this card.</p>
                 </div>
@@ -7949,7 +7953,7 @@
             if (!ads.renderInto(slot, 'game-preroll')) return;
 
             const configured = Number(settings.seconds);
-            gamesPrerollRemaining = Number.isFinite(configured) && configured >= 0 ? Math.round(configured) : 5;
+            gamesPrerollRemaining = Number.isFinite(configured) && configured >= 0 ? Math.round(configured) : 2;
             if (name) name.textContent = file.name;
             overlay.hidden = false;
             gamesPrerollOpen = true;
@@ -7961,17 +7965,17 @@
                 gamesHidePreroll();
                 return;
             }
+            // Use a deadline, not a tick counter: busy pages and background
+            // timer throttling must not stretch a 2 second ad into three.
+            const prerollEndsAt = performance.now() + gamesPrerollRemaining * 1000;
             gamesPrerollTimer = setInterval(() => {
-                gamesPrerollRemaining--;
-                gamesTickPreroll();
-                if (gamesPrerollRemaining <= 0) {
-                    clearInterval(gamesPrerollTimer);
-                    gamesPrerollTimer = null;
-                    setTimeout(() => {
-                        if (gamesPrerollOpen && gamesPrerollRemaining <= 0) gamesHidePreroll();
-                    }, 800);
+                const left = Math.max(0, Math.ceil((prerollEndsAt - performance.now()) / 1000));
+                if (left !== gamesPrerollRemaining) {
+                    gamesPrerollRemaining = left;
+                    gamesTickPreroll();
                 }
-            }, 1000);
+                if (left <= 0) gamesHidePreroll();
+            }, 100);
         }
 
         if (zoneFrame) {
@@ -8049,7 +8053,7 @@
             zoneViewer.classList.toggle('zone-fullscreen', on);
             document.documentElement.classList.toggle('zone-fs-lock', on);
             const btn = document.getElementById('zoneFullscreenBtn');
-            if (btn) btn.textContent = on ? 'Exit fullscreen' : 'Fullscreen';
+            if (btn) btn.textContent = on ? 'Exit fullscreen' : 'Enter fullscreen';
         }
 
         function fullscreenZone() {

@@ -1112,3 +1112,40 @@ html {
         #proxy-content { height: calc(100dvh - 62px) !important; }
     }
 }
+
+
+/* Quick fullscreen entry button over the game itself */
+.zone-enter-fullscreen {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    z-index: 6;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 0 16px;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    border-radius: 999px;
+    background: rgba(10, 7, 20, 0.78);
+    color: #fff;
+    font-family: var(--font);
+    font-size: 0.68rem;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.zone-enter-fullscreen:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #100a1e;
+}
+
+.zone-enter-fullscreen svg { flex-shrink: 0; }
+
+#zoneViewer.zone-fullscreen .zone-enter-fullscreen { display: none; }
