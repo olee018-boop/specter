@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-layout="desktop" data-icon-size="md" data-taskbar-labels="true" data-wallpaper="aurora">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -2339,18 +2339,40 @@
         /* --- END PROXY CSS --- */
 
     </style>
-        <link rel="stylesheet" href="assets/layout-v2.css?v=6">
+<script>
+        // Apply the saved desktop layout before CSS paints to avoid a flash.
+        (function () {
+            try {
+                var saved = JSON.parse(localStorage.getItem('aether_desktop_settings') || '{}') || {};
+                var root = document.documentElement;
+                root.dataset.layout = ['desktop', 'compact', 'classic'].indexOf(saved.layout) >= 0 ? saved.layout : 'desktop';
+                root.dataset.iconSize = ['sm', 'md', 'lg'].indexOf(saved.iconSize) >= 0 ? saved.iconSize : 'md';
+                root.dataset.taskbarLabels = saved.labels === false ? 'false' : 'true';
+                root.dataset.wallpaper = ['aurora', 'grid', 'graphite'].indexOf(saved.wallpaper) >= 0 ? saved.wallpaper : 'aurora';
+            } catch (e) {}
+        })();
+    </script>
+    <link rel="stylesheet" href="assets/layout-v2.css?v=8">
 </head>
 <body>
 
     <aside class="sidebar" id="main-sidebar">
-        <div class="logo-box" onclick="openReadmeModal()" title="View README" style="cursor:pointer;">◈</div>
+        <div class="logo-box" onclick="nav('home')" title="Home" style="cursor:pointer;" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();nav('home');}">◈</div>
         <div class="nav-group" id="sidebar-nav-top"></div>
         <button class="create-cta" onclick="openBuildModal()" title="Fork the source and host your own copy">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="12" cy="18" r="3"/><path d="M6 9v2a4 4 0 0 0 4 4h4a4 4 0 0 0 4-4V9"/><path d="M12 15v-3"/></svg>
             <span>CREATE YOUR OWN</span>
         </button>
         <div class="sidebar-bottom" id="sidebar-nav-bottom"></div>
+        <div class="taskbar-tray">
+            <button type="button" class="taskbar-info" onclick="openReadmeModal()" title="About Aether" aria-label="About Aether">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            </button>
+            <button type="button" class="taskbar-clock" onclick="nav('settings')" title="Open settings">
+                <span id="taskbar-time">--:--</span>
+                <span id="taskbar-date">DESKTOP</span>
+            </button>
+        </div>
     </aside>
 
     <div class="status-hud" id="home-hud">
@@ -2372,35 +2394,89 @@
     </div>
 
     <main class="main-view">
-        <section id="home-content" class="view-section">
-            <div class="home-ads">
-                <div class="ad-slot ad-slot--wide" data-ad-slot="home-top" aria-label="Advertisement"></div>
-            </div>
-            <div class="home-main">
-                <div class="hero">
-                    <h1>Welcome to<br><span id="typewriter"></span></h1>
-                    <p class="subtitle" style="color: var(--text-dim); margin-top: 10px;">
-                        Aether Network // <span class="total-visits-display" id="total-visits" style="font-size:1em; opacity:1; margin-left:0;">...</span>
-                    </p>
-                    <div class="hero-actions">
-                        <button class="btn-start" onclick="glInitSystems()">INITIALIZE SYSTEMS</button>
-                        <button class="btn-ghost" onclick="openBuildModal()">CREATE YOUR OWN</button>
+        <section id="home-content" class="view-section desktop-view">
+            <div class="desktop-stage">
+                <div class="desktop-workarea">
+                    <div class="desktop-app-column">
+                        <p class="desktop-label">Apps</p>
+                        <div class="desktop-shortcuts" aria-label="Apps">
+                            <button type="button" class="desktop-shortcut" data-page="home" onclick="nav('home')" aria-label="Open Home" title="Home">
+                                <span class="desktop-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
+                                <span class="desktop-name">Home</span>
+                            </button>
+                            <button type="button" class="desktop-shortcut" data-page="games" onclick="nav('games')" aria-label="Open Games" title="Games library">
+                                <span class="desktop-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 7C4 7 2 8.5 2 11c0 2 .5 3.8 1.5 5.2C4.4 17.5 5.3 18 6.2 18c.7 0 1.3-.3 2.1-.8l.8-.6C9.7 16.2 10.8 16 12 16s2.3.2 2.9.6l.8.6c.8.5 1.4.8 2.1.8.9 0 1.8-.5 2.7-1.8C21.5 14.8 22 13 22 11c0-2.5-2-4-3.5-4H5.5z"/><path d="M8.5 7V5.5A.5.5 0 0 1 9 5h6a.5.5 0 0 1 .5.5V7"/><line x1="7" y1="10.5" x2="7" y2="13.5"/><line x1="5.5" y1="12" x2="8.5" y2="12"/><circle cx="15.5" cy="10.5" r=".75" fill="currentColor"/><circle cx="17.5" cy="12.5" r=".75" fill="currentColor"/></svg></span>
+                                <span class="desktop-name">Games</span>
+                            </button>
+                            <button type="button" class="desktop-shortcut" data-page="ai" onclick="nav('ai')" aria-label="Open AI Terminal" title="AI Terminal">
+                                <span class="desktop-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><line x1="10" y1="9" x2="10" y2="15"/><line x1="14" y1="9" x2="14" y2="15"/></svg></span>
+                                <span class="desktop-name">AI Chat</span>
+                            </button>
+                            <button type="button" class="desktop-shortcut" data-page="proxy" onclick="nav('proxy')" aria-label="Open Proxy" title="Private browser">
+                                <span class="desktop-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span>
+                                <span class="desktop-name">Proxy</span>
+                            </button>
+                            <button type="button" class="desktop-shortcut" data-page="lucide" onclick="nav('lucide')" aria-label="Open Lucide" title="Lucide">
+                                <span class="desktop-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18"/></svg></span>
+                                <span class="desktop-name">Lucide</span>
+                            </button>
+                            <button type="button" class="desktop-shortcut" data-page="customapps" onclick="nav('customapps')" aria-label="Open custom tools" title="Custom tools">
+                                <span class="desktop-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><path d="M3 14h7v7H3z"/></svg></span>
+                                <span class="desktop-name">Tools</span>
+                            </button>
+                            <button type="button" class="desktop-shortcut" data-page="marketplace" onclick="nav('marketplace')" aria-label="Open app store" title="App store">
+                                <span class="desktop-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span>
+                                <span class="desktop-name">Store</span>
+                            </button>
+                            <button type="button" class="desktop-shortcut" data-page="settings" onclick="nav('settings')" aria-label="Open Settings" title="Settings">
+                                <span class="desktop-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+                                <span class="desktop-name">Settings</span>
+                            </button>
+                        </div>
+                        <p class="desktop-tip">Click once to open.</p>
                     </div>
-                    <a class="promo-card" href="https://textnexus.me" target="_blank" rel="noopener sponsored" aria-label="Sponsored: TextNexus">
-                        <span class="promo-body">
-                            <span class="promo-badge">SPONSORED</span>
-                            <span class="promo-title">TextNexus <span class="promo-ver">7.0</span></span>
-                            <span class="promo-desc">Private chat, file sharing and AI in one workspace. Instant boot, mobile-ready, everything one shortcut away.</span>
-                        </span>
-                        <span class="promo-cta">Visit textnexus.me <span aria-hidden="true">→</span></span>
-                    </a>
-                </div>
-                <div class="clock-container">
-                    <div id="home-clock">00:00:00</div>
-                    <div id="home-date">LOADING SYSTEM...</div>
+                    <div class="desktop-panels">
+                        <div class="desktop-window desktop-welcome">
+                            <div class="desktop-window-bar">
+                                <span class="desktop-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+                                <span class="desktop-window-title">Welcome</span>
+                                <span class="desktop-online"><i></i> Ready</span>
+                            </div>
+                            <div class="desktop-window-body">
+                                <p class="desktop-kicker">Aether Desktop</p>
+                                <h1>Welcome to<br><span id="typewriter"></span></h1>
+                                <p class="desktop-subtitle">Games, tools, AI and a private browser in one place.<span class="total-visits-display" id="total-visits">...</span></p>
+                                <div class="hero-actions">
+                                    <button class="btn-start" onclick="glInitSystems()">QUICK START</button>
+                                    <button class="btn-ghost" onclick="nav('settings')">PERSONALIZE</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="desktop-widget">
+                            <div class="desktop-window desktop-clock-window">
+                                <div class="desktop-window-bar">
+                                    <span class="desktop-window-title">Clock</span>
+                                    <span class="desktop-window-mini">LOCAL</span>
+                                </div>
+                                <div class="desktop-clock-body">
+                                    <div id="home-clock">00:00:00</div>
+                                    <div id="home-date">LOADING SYSTEM...</div>
+                                </div>
+                            </div>
+                            <a class="promo-card desktop-promo" href="https://textnexus.me" target="_blank" rel="noopener sponsored" aria-label="Sponsored: TextNexus">
+                                <span class="promo-body">
+                                    <span class="promo-badge">SPONSORED</span>
+                                    <span class="promo-title">TextNexus <span class="promo-ver">7.0</span></span>
+                                    <span class="promo-desc">Private chat, file sharing and AI in one workspace.</span>
+                                </span>
+                                <span class="promo-cta">Visit textnexus.me <span aria-hidden="true">→</span></span>
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="home-ads">
+            <div class="home-ads desktop-ad-row" aria-label="Sponsored">
+                <div class="ad-slot ad-slot--wide" data-ad-slot="home-top" aria-label="Advertisement"></div>
                 <div class="ad-slot" data-ad-slot="home-banner" aria-label="Advertisement"></div>
                 <div class="ad-slot ad-slot--wide" data-ad-slot="home-bottom" aria-label="Advertisement"></div>
             </div>
@@ -2466,6 +2542,45 @@
                 <p style="color:var(--text-dim)">Global configuration and tab cloaking.</p>
             </div>
             <div class="settings-grid">
+                <div class="settings-card" id="desktop-layout-card">
+                    <h3>Desktop Layout</h3>
+                    <p style="font-size:0.8rem; color:var(--text-dim); margin-bottom:18px; line-height:1.5;">Change how the site looks. Everything is saved on this device and applies immediately.</p>
+                    <div class="input-group">
+                        <label>Navigation Style</label>
+                        <select id="desktop-layout-select" onchange="setDesktopLayout(this.value)">
+                            <option value="desktop">Desktop — apps and bottom taskbar</option>
+                            <option value="compact">Compact — slimmer, space-saving taskbar</option>
+                            <option value="classic">Classic — top menu bar</option>
+                        </select>
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                        <div class="input-group">
+                            <label>App Icon Size</label>
+                            <select id="desktop-icon-size-select" onchange="setDesktopIconSize(this.value)">
+                                <option value="sm">Small</option>
+                                <option value="md">Medium</option>
+                                <option value="lg">Large</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Taskbar Labels</label>
+                            <select id="desktop-labels-select" onchange="setDesktopLabels(this.value)">
+                                <option value="true">Show labels</option>
+                                <option value="false">Icons only</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>Desktop Wallpaper</label>
+                        <select id="desktop-wallpaper-select" onchange="setDesktopWallpaper(this.value)">
+                            <option value="aurora">Aurora — soft violet glow</option>
+                            <option value="grid">Grid — dark blueprint</option>
+                            <option value="graphite">Graphite — quiet and flat</option>
+                        </select>
+                    </div>
+                    <button class="preset-btn" onclick="resetDesktopLayout()" style="width:100%;">RESET DESKTOP LAYOUT</button>
+                </div>
+
                 <div class="settings-card">
                     <h3>Tab Cloaker</h3>
                     <div class="input-group">
@@ -3937,6 +4052,10 @@
                 if (navItem) navItem.classList.add('active');
             }
 
+            document.querySelectorAll('.desktop-shortcut').forEach(el => {
+                el.classList.toggle('active', !appData && el.dataset.page === page);
+            });
+
             [home, settings, customAppsView, marketplaceView, gamesView, proxyView, achievementsView, frame, hud, socialHud].forEach(el => {
                 if (el) el.style.display = 'none';
             });
@@ -4228,6 +4347,7 @@
                 div.className = 'nav-item';
                 div.draggable = true;
                 div.dataset.id = id;
+                div.title = itemData.name;
                 div.onclick = () => isCustom ? nav('run_custom', itemData) : nav(itemData.id);
                 div.innerHTML = `${itemData.svg}<span>${itemData.name}</span>`;
 
@@ -5387,6 +5507,21 @@
                 }
                 dateEl.textContent = dateStr;
                 dateEl.style.display = dateFmt === 'off' ? 'none' : '';
+            }
+
+            const taskbarTime = document.getElementById('taskbar-time');
+            const taskbarDate = document.getElementById('taskbar-date');
+            if (taskbarTime) {
+                taskbarTime.textContent = clockFmt === 'off' ? '' : now.toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: clockFmt === '12h-s' || clockFmt === '12h'
+                });
+                taskbarTime.style.display = clockFmt === 'off' ? 'none' : '';
+            }
+            if (taskbarDate) {
+                taskbarDate.textContent = dateFmt === 'off' ? '' : now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                taskbarDate.style.display = dateFmt === 'off' ? 'none' : '';
             }
         }
 
@@ -7669,7 +7804,7 @@
                 img.alt = file.name;
                 img.decoding = 'async';
                 img.loading = index < itemsVisible * 2 ? 'eager' : 'lazy';
-                img.addEventListener('error', () => { img.src = gamesCoverFull(file); }, { once: true });
+                img.addEventListener('error', () => { img.src = GAMES_COVER_FALLBACK; }, { once: true });
                 const p = document.createElement('p');
                 p.textContent = file.name;
                 p.style.fontSize = "0.75rem";
@@ -7768,9 +7903,10 @@
             return (file.cover || '').replace("{COVER_URL}", coverURL).replace("{HTML_URL}", htmlURL);
         }
 
-        // Covers are 512x512 PNGs at roughly 400 KB each. The thumbnails in
-        // covers/thumbs are ~15 KB WebP, which is all a grid tile needs; the
-        // original image stays as the fallback.
+        // Grids use the ~15 KB WebP covers. The old multi-megabyte originals
+        // are no longer shipped; non-local covers still use their direct URL.
+        const GAMES_COVER_FALLBACK = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" fill="#120d22"/><rect x="24" y="24" width="464" height="464" rx="36" fill="none" stroke="#a678ff" stroke-opacity=".35" stroke-width="4"/><text x="256" y="272" fill="#a678ff" font-family="monospace" font-size="38" text-anchor="middle" letter-spacing="4">AETHER</text></svg>');
+
         function gamesCoverSrc(file) {
             const full = gamesCoverFull(file);
             const match = full.match(/^covers\/(.+)\.(?:png|jpe?g)$/i);
@@ -7820,7 +7956,7 @@
             img.height = 300;
             img.loading = 'lazy';
             img.decoding = 'async';
-            img.addEventListener('error', () => { img.src = gamesCoverFull(file); }, { once: true });
+            img.addEventListener('error', () => { img.src = GAMES_COVER_FALLBACK; }, { once: true });
             const p = document.createElement('p');
             p.textContent = file.name;
             div.append(heart, img, p);
@@ -9116,7 +9252,7 @@
                     <h2 style="color:var(--accent);">Aether Repository</h2>
                     <p>Open the Aether GitHub repo from here or use the button below to navigate directly.</p>
                     <p style="margin-top:16px;">This popup is designed as a quick home footer action, similar to the privacy and policy links.</p>
-                    <button class="btn-start" onclick="window.open('https://github.com/immcrab/urban-octo-winner', '_blank', 'noopener')" style="margin-top:24px;">Open GitHub Repository</button>
+                    <button class="btn-start" onclick="window.open('https://github.com/olee018-boop/specter', '_blank', 'noopener')" style="margin-top:24px;">Open GitHub Repository</button>
                 </div>
             </div>
         </div>
@@ -9308,6 +9444,76 @@
                 closeRipXrevanModal();
             }
         });
+    </script>
+<script>
+        (function () {
+            const KEY = 'aether_desktop_settings';
+            const DEFAULTS = { layout: 'desktop', iconSize: 'md', labels: true, wallpaper: 'aurora' };
+            const LAYOUTS = ['desktop', 'compact', 'classic'];
+            const SIZES = ['sm', 'md', 'lg'];
+            const WALLPAPERS = ['aurora', 'grid', 'graphite'];
+
+            function read() {
+                let saved = {};
+                try { saved = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) {}
+                return {
+                    layout: LAYOUTS.indexOf(saved.layout) >= 0 ? saved.layout : DEFAULTS.layout,
+                    iconSize: SIZES.indexOf(saved.iconSize) >= 0 ? saved.iconSize : DEFAULTS.iconSize,
+                    labels: saved.labels !== false,
+                    wallpaper: WALLPAPERS.indexOf(saved.wallpaper) >= 0 ? saved.wallpaper : DEFAULTS.wallpaper
+                };
+            }
+
+            function syncControls(settings) {
+                const layout = document.getElementById('desktop-layout-select');
+                const size = document.getElementById('desktop-icon-size-select');
+                const labels = document.getElementById('desktop-labels-select');
+                const wallpaper = document.getElementById('desktop-wallpaper-select');
+                if (layout) layout.value = settings.layout;
+                if (size) size.value = settings.iconSize;
+                if (labels) labels.value = settings.labels ? 'true' : 'false';
+                if (wallpaper) wallpaper.value = settings.wallpaper;
+            }
+
+            function apply(settings) {
+                const root = document.documentElement;
+                root.dataset.layout = settings.layout;
+                root.dataset.iconSize = settings.iconSize;
+                root.dataset.taskbarLabels = settings.labels ? 'true' : 'false';
+                root.dataset.wallpaper = settings.wallpaper;
+                syncControls(settings);
+            }
+
+            function save(patch) {
+                const next = Object.assign(read(), patch);
+                try { localStorage.setItem(KEY, JSON.stringify(next)); } catch (e) {}
+                apply(next);
+            }
+
+            window.setDesktopLayout = function (value) {
+                if (LAYOUTS.indexOf(value) >= 0) save({ layout: value });
+            };
+            window.setDesktopIconSize = function (value) {
+                if (SIZES.indexOf(value) >= 0) save({ iconSize: value });
+            };
+            window.setDesktopLabels = function (value) {
+                save({ labels: value !== 'false' });
+            };
+            window.setDesktopWallpaper = function (value) {
+                if (WALLPAPERS.indexOf(value) >= 0) save({ wallpaper: value });
+            };
+            window.resetDesktopLayout = function () {
+                save(DEFAULTS);
+            };
+
+            document.addEventListener('DOMContentLoaded', function () {
+                apply(read());
+                if (typeof updateClock === 'function') updateClock();
+                document.querySelectorAll('.desktop-shortcut').forEach(function (el) {
+                    el.classList.toggle('active', el.dataset.page === 'home');
+                });
+            });
+        })();
     </script>
 </body>
 </html>
