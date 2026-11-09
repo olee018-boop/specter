@@ -2,7 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#08060f">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Aether">
     <title>Aether - Free Proxy Browser</title>
     <meta name="description" content="Aether is a free proxy browser. Access any website anonymously and securely.">
     <meta name="keywords" content="specter, proxy, browser, anonymous browsing, unblock websites">
@@ -21,7 +26,8 @@
     <meta name="twitter:image" content="https://raw.githubusercontent.com/immcrab/urban-octo-winner/main/og-image.png">
     <script defer src="https://cloud.umami.is/script.js" data-website-id="cd4687b2-c160-4e0c-8b26-5df67d4ea39a"></script>
     <!--- Supabase for total visits --->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.js"></script>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.js"></script>
     <script src="vendor/scramjet.all.js" defer></script>
     <script type="module">
         import * as BareMux from "./vendor/bare-mux.mjs";
@@ -29,7 +35,8 @@
     </script>
     <link rel="icon" type="image/png" href="assets/favicon.png">
         
-    <link rel="stylesheet" href="vendor/fontawesome/all.min.css">
+    <link rel="stylesheet" href="vendor/fontawesome/all.min.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="vendor/fontawesome/all.min.css"></noscript>
     <script>
         function loadIntoFrame(targetUrl) {
             const frame = document.getElementById('app-frame');
@@ -2332,7 +2339,7 @@
         /* --- END PROXY CSS --- */
 
     </style>
-        <link rel="stylesheet" href="assets/layout-v2.css?v=4">
+        <link rel="stylesheet" href="assets/layout-v2.css?v=6">
 </head>
 <body>
 
@@ -2994,6 +3001,7 @@
             <div id="gamesContainer">Loading zones...</div>
 
             <div class="ad-slot ad-slot--wide" data-ad-slot="games-bottom" aria-label="Advertisement"></div>
+            <div class="ad-slot ad-slot--native" data-ad-slot="games-native" aria-label="Advertisement"></div>
         </section>
 
         <!-- ZONE VIEWER OVERLAY -->
@@ -3003,12 +3011,45 @@
                     <strong id="zoneName">Game</strong>
                 </div>
                 <div class="zone-controls">
-                    <button class="zone-control-btn" onclick="fullscreenZone()">Fullscreen</button>
+                    <button class="zone-control-btn" id="zoneFullscreenBtn" onclick="fullscreenZone()">Fullscreen</button>
                     <button class="zone-control-btn" onclick="downloadZone()">Download</button>
                     <button class="zone-control-btn" onclick="closeZone()">Close</button>
                 </div>
             </div>
-            <iframe id="zoneFrame"></iframe>
+            <div class="zone-stage">
+                <aside class="zone-rail zone-rail--left" aria-label="Advertisement">
+                    <div class="ad-slot" data-ad-slot="game-side-left"></div>
+                </aside>
+                <div class="zone-play">
+                    <div class="zone-frame-wrap">
+                        <iframe id="zoneFrame" allowfullscreen allow="fullscreen; autoplay; gamepad; accelerometer; gyroscope; pointer-lock"></iframe>
+                        <div class="zone-loading" id="zoneLoading" hidden><span class="zone-spinner" aria-hidden="true"></span></div>
+                    </div>
+                    <div class="zone-bottom-ad">
+                        <div class="ad-slot" data-ad-slot="game-bottom" aria-label="Advertisement"></div>
+                    </div>
+                </div>
+                <aside class="zone-rail zone-rail--right" aria-label="Advertisement">
+                    <div class="ad-slot" data-ad-slot="game-side-right"></div>
+                </aside>
+            </div>
+            <button type="button" class="zone-exit-fullscreen" id="zoneExitFullscreen" onclick="exitZoneFullscreen()">Exit fullscreen</button>
+
+            <!-- PRE-GAME AD: shown while the game loads behind it -->
+            <div class="game-preroll" id="gamePreroll" role="dialog" aria-modal="true" aria-label="Advertisement before the game" hidden>
+                <div class="game-preroll-card">
+                    <div class="game-preroll-head">
+                        <span class="game-preroll-kicker">Advertisement</span>
+                        <span class="game-preroll-count" id="gamePrerollCount" aria-live="polite">5</span>
+                    </div>
+                    <div class="ad-slot ad-slot--preroll" id="gamePrerollSlot"></div>
+                    <div class="game-preroll-foot">
+                        <span class="game-preroll-name" id="gamePrerollName"></span>
+                        <button type="button" class="game-preroll-skip" id="gamePrerollSkip" onclick="gamesSkipPreroll()" disabled>Starting in 5s</button>
+                    </div>
+                    <p class="game-preroll-note">Ads keep every game free. The game is already loading behind this card.</p>
+                </div>
+            </div>
         </div>
 
         <!-- PROXY SECTION  -->
@@ -7475,6 +7516,7 @@
         const gamesContainer = document.getElementById('gamesContainer');
         const zoneViewer = document.getElementById('zoneViewer');
         let zoneFrame = document.getElementById('zoneFrame');
+        const zoneLoading = document.getElementById('zoneLoading');
         const gamesFeatContainer = document.getElementById('gamesFeaturedContainer');
         const gamesFeatWrapper = document.getElementById('gamesFeaturedWrapper');
         let gamesPopularityData = {};
@@ -7497,24 +7539,86 @@
         let gamesPauseTimer;
         let gamesIsTransitioning = false;
 
-        async function gamesListZones() {
+        // The catalogue is ~200 KB of JSON. Paint the last copy instantly from
+        // localStorage, then refresh in the background instead of making the
+        // games page wait on a network round trip every visit.
+        const GAMES_ZONES_CACHE = 'aether-zones-v1';
+        const GAMES_POP_CACHE = 'aether-popularity-v1';
+
+        function gamesReadCache(key) {
             try {
-                const response = await fetch(zonesURL + "?t=" + Date.now());
-                zones = await response.json();
-                await gamesFetchPopularity();
+                const raw = localStorage.getItem(key);
+                return raw ? JSON.parse(raw) : null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function gamesWriteCache(key, value) {
+            try {
+                localStorage.setItem(key, JSON.stringify(value));
+            } catch (e) { /* private mode or full quota: caching is optional */ }
+        }
+
+        function gamesZonesSignature(list) {
+            if (!Array.isArray(list) || !list.length) return '0';
+            // Cheap FNV-1a over every entry: catches a changed cover or URL in
+            // the middle of the catalogue, not just added or removed games.
+            let hash = 2166136261;
+            for (let i = 0; i < list.length; i++) {
+                const row = list[i];
+                const text = row.id + '|' + (row.name || '') + '|' + (row.cover || '') + '|' + (row.url || '');
+                for (let j = 0; j < text.length; j++) {
+                    hash ^= text.charCodeAt(j);
+                    hash = Math.imul(hash, 16777619);
+                }
+            }
+            return list.length + ':' + (hash >>> 0);
+        }
+
+        async function gamesListZones() {
+            const cached = gamesReadCache(GAMES_ZONES_CACHE);
+            let painted = false;
+            if (cached && Array.isArray(cached.zones) && cached.zones.length) {
+                zones = cached.zones;
+                if (cached.popularity) gamesPopularityData = cached.popularity;
                 gamesSetupFeatured();
                 gamesHandleSearch();
+                painted = true;
+            }
+            try {
+                const [zonesRes, popularityRes] = await Promise.all([
+                    fetch(zonesURL, { cache: 'default' }),
+                    fetch("data/popularity.json", { cache: 'default' }).catch(() => null)
+                ]);
+                if (!zonesRes.ok) throw new Error('HTTP ' + zonesRes.status);
+                const freshZones = await zonesRes.json();
+                let freshPopularity = {};
+                if (popularityRes && popularityRes.ok) {
+                    try { freshPopularity = await popularityRes.json(); } catch (e) {}
+                }
+                const changed = gamesZonesSignature(freshZones) !== gamesZonesSignature(zones);
+                zones = freshZones;
+                gamesPopularityData = freshPopularity || {};
+                gamesWriteCache(GAMES_ZONES_CACHE, { zones: freshZones, popularity: gamesPopularityData, saved: Date.now() });
+                if (!painted || changed) {
+                    gamesSetupFeatured();
+                    gamesHandleSearch();
+                }
             } catch (error) {
-                gamesContainer.innerHTML = "Error: " + error;
+                if (!painted) gamesContainer.innerHTML = "Error: " + error;
             }
         }
 
         async function gamesFetchPopularity() {
+            const cached = gamesReadCache(GAMES_POP_CACHE);
+            if (cached && typeof cached === 'object') gamesPopularityData = cached;
             try {
                 const response = await fetch("data/popularity.json");
                 gamesPopularityData = await response.json();
+                gamesWriteCache(GAMES_POP_CACHE, gamesPopularityData);
             } catch (error) {
-                gamesPopularityData = {};
+                if (!gamesPopularityData) gamesPopularityData = {};
             }
         }
 
@@ -7545,16 +7649,23 @@
 
         function gamesRenderFeatured() {
             gamesFeatContainer.innerHTML = "";
-            const itemsVisible = window.innerWidth > 800 ? 5 : 2;
+            const itemsVisible = gamesVisibleFeaturedCount();
+            gamesFeaturedVisible = itemsVisible;
             const clonesBefore = gamesFeaturedGames.slice(-itemsVisible);
             const clonesAfter = gamesFeaturedGames.slice(0, itemsVisible);
             const displayPool = [...clonesBefore, ...gamesFeaturedGames, ...clonesAfter];
-            displayPool.forEach((file) => {
+            displayPool.forEach((file, index) => {
                 const div = document.createElement('div');
                 div.className = 'games-featured-item';
                 div.onclick = () => openZone(file);
+                div.addEventListener('pointerenter', () => gamesPrefetch(file), { once: true, passive: true });
+                div.addEventListener('pointerdown', () => gamesPrefetch(file), { once: true, passive: true });
                 const img = document.createElement('img');
-                img.src = file.cover.replace("{COVER_URL}", coverURL).replace("{HTML_URL}", htmlURL);
+                img.src = gamesCoverSrc(file);
+                img.alt = file.name;
+                img.decoding = 'async';
+                img.loading = index < itemsVisible * 2 ? 'eager' : 'lazy';
+                img.addEventListener('error', () => { img.src = gamesCoverFull(file); }, { once: true });
                 const p = document.createElement('p');
                 p.textContent = file.name;
                 p.style.fontSize = "0.75rem";
@@ -7569,7 +7680,7 @@
         }
 
         function gamesUpdateCarouselPosition(transition = true) {
-            const itemsVisible = window.innerWidth > 800 ? 5 : 2;
+            const itemsVisible = gamesVisibleFeaturedCount();
             const offset = gamesCarouselIndex * (100 / itemsVisible);
             gamesFeatContainer.style.transition = transition ? "transform 0.6s cubic-bezier(0.23, 1, 0.32, 1)" : "none";
             gamesFeatContainer.style.transform = `translateX(-${offset}%)`;
@@ -7584,7 +7695,7 @@
 
         function gamesMoveCarousel(direction) {
             if (gamesIsTransitioning) return;
-            const itemsVisible = window.innerWidth > 800 ? 5 : 2;
+            const itemsVisible = gamesVisibleFeaturedCount();
             const totalItems = gamesFeaturedGames.length;
             gamesIsTransitioning = true;
             gamesCarouselIndex += direction;
@@ -7649,8 +7760,32 @@
         const GAMES_AD_MAX = 6;
         let gamesAdCount = 0;
 
-        function gamesInsertAdTile() {
-            if (gamesAdCount >= GAMES_AD_MAX) return;
+        function gamesCoverFull(file) {
+            return (file.cover || '').replace("{COVER_URL}", coverURL).replace("{HTML_URL}", htmlURL);
+        }
+
+        // Covers are 512x512 PNGs at roughly 400 KB each. The thumbnails in
+        // covers/thumbs are ~15 KB WebP, which is all a grid tile needs; the
+        // original image stays as the fallback.
+        function gamesCoverSrc(file) {
+            const full = gamesCoverFull(file);
+            const match = full.match(/^covers\/(.+)\.(?:png|jpe?g)$/i);
+            return match ? `covers/thumbs/${match[1]}.webp` : full;
+        }
+
+        // Warm the HTTP cache as soon as a tile is hovered or pressed, so a
+        // multi-megabyte game starts downloading before the player opens.
+        const gamesPrefetched = new Set();
+        function gamesPrefetch(file) {
+            if (!file || !file.url || file.url.startsWith('http')) return;
+            const url = file.url.replace("{COVER_URL}", coverURL).replace("{HTML_URL}", htmlURL);
+            if (gamesPrefetched.has(url)) return;
+            gamesPrefetched.add(url);
+            try { fetch(url, { cache: 'force-cache' }).catch(() => {}); } catch (e) {}
+        }
+
+        function gamesMakeAdTile() {
+            if (gamesAdCount >= GAMES_AD_MAX) return null;
             gamesAdCount++;
             const wrap = document.createElement('div');
             wrap.className = 'ad-inline-card';
@@ -7659,35 +7794,190 @@
             slot.setAttribute('data-ad-slot', 'grid-banner');
             slot.setAttribute('aria-label', 'Advertisement');
             wrap.appendChild(slot);
-            gamesContainer.appendChild(wrap);
+            return wrap;
+        }
+
+        function gamesMakeCard(file) {
+            const div = document.createElement('div');
+            div.className = 'zone-item';
+            div.onclick = () => openZone(file);
+            div.addEventListener('pointerenter', () => gamesPrefetch(file), { once: true, passive: true });
+            div.addEventListener('pointerdown', () => gamesPrefetch(file), { once: true, passive: true });
+            const heart = document.createElement('button');
+            const isFav = gamesFavorites.includes(file.id);
+            heart.className = `games-heart-btn ${isFav ? 'active' : ''}`;
+            heart.setAttribute('aria-label', isFav ? 'Remove from favourites' : 'Add to favourites');
+            heart.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>';
+            heart.onclick = (e) => gamesToggleHeart(e, file.id);
+            const img = document.createElement('img');
+            img.src = gamesCoverSrc(file);
+            img.alt = file.name;
+            img.width = 300;
+            img.height = 300;
+            img.loading = 'lazy';
+            img.decoding = 'async';
+            img.addEventListener('error', () => { img.src = gamesCoverFull(file); }, { once: true });
+            const p = document.createElement('p');
+            p.textContent = file.name;
+            div.append(heart, img, p);
+            return div;
+        }
+
+        // 800+ cards at once forces the browser to decode hundreds of covers
+        // and build a huge DOM before the page responds. Render a screenful,
+        // then keep appending as the player scrolls.
+        const GAMES_RENDER_CHUNK = 48;
+        let gamesRenderToken = 0;
+        let gamesRenderQueue = [];
+        let gamesRenderIndex = 0;
+        let gamesSentinel = null;
+        let gamesSentinelObserver = null;
+
+        function gamesStopSentinel() {
+            if (gamesSentinelObserver) {
+                gamesSentinelObserver.disconnect();
+                gamesSentinelObserver = null;
+            }
+            if (gamesSentinel) {
+                gamesSentinel.remove();
+                gamesSentinel = null;
+            }
+        }
+
+        function gamesAppendChunk(token) {
+            if (token !== gamesRenderToken) return;
+            gamesStopSentinel();
+            const fragment = document.createDocumentFragment();
+            const end = Math.min(gamesRenderIndex + GAMES_RENDER_CHUNK, gamesRenderQueue.length);
+            for (; gamesRenderIndex < end; gamesRenderIndex++) {
+                if (gamesRenderIndex > 0 && gamesRenderIndex % GAMES_AD_INTERVAL === 0) {
+                    const adTile = gamesMakeAdTile();
+                    if (adTile) fragment.appendChild(adTile);
+                }
+                fragment.appendChild(gamesMakeCard(gamesRenderQueue[gamesRenderIndex]));
+            }
+            gamesContainer.appendChild(fragment);
+            if (window.specterAds) window.specterAds.renderAll();
+
+            if (gamesRenderIndex < gamesRenderQueue.length) {
+                gamesSentinel = document.createElement('div');
+                gamesSentinel.className = 'games-load-sentinel';
+                gamesSentinel.setAttribute('aria-hidden', 'true');
+                gamesContainer.appendChild(gamesSentinel);
+                gamesSentinelObserver = new IntersectionObserver((entries) => {
+                    if (entries.some(entry => entry.isIntersecting)) gamesAppendChunk(token);
+                }, { root: document.getElementById('games-content'), rootMargin: '1200px 0px' });
+                gamesSentinelObserver.observe(gamesSentinel);
+            }
         }
 
         function gamesRenderGrid(data) {
-            const query = document.getElementById('gamesSearchInput').value.toLowerCase();
-            const displayData = data.filter(z => {
-                const matchesSearch = z.name.toLowerCase().includes(query);
-                const matchesFav = gamesShowFavsOnly ? gamesFavorites.includes(z.id) : true;
-                return matchesSearch && matchesFav;
-            });
-            gamesContainer.innerHTML = "";
+            gamesRenderToken++;
+            gamesRenderQueue = data;
+            gamesRenderIndex = 0;
             gamesAdCount = 0;
-            displayData.forEach((file, index) => {
-                if (index > 0 && index % GAMES_AD_INTERVAL === 0) gamesInsertAdTile();
-                const div = document.createElement('div');
-                div.className = 'zone-item';
-                div.onclick = () => openZone(file);
-                const heart = document.createElement('button');
-                heart.className = `games-heart-btn ${gamesFavorites.includes(file.id) ? 'active' : ''}`;
-                heart.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>';
-                heart.onclick = (e) => gamesToggleHeart(e, file.id);
-                const img = document.createElement('img');
-                img.src = file.cover.replace("{COVER_URL}", coverURL).replace("{HTML_URL}", htmlURL);
-                const p = document.createElement('p');
-                p.textContent = file.name;
-                div.append(heart, img, p);
-                gamesContainer.appendChild(div);
+            gamesStopSentinel();
+            gamesContainer.innerHTML = "";
+            gamesAppendChunk(gamesRenderToken);
+        }
+
+        // --- Pre-game ad -------------------------------------------------
+        // The game frame starts loading immediately; the countdown runs on
+        // top, so the ad pays for the wait instead of adding one.
+        const GAMES_PREROLL_LAST = 'aether-preroll-last';
+        let gamesPrerollTimer = null;
+        let gamesPrerollRemaining = 0;
+        let gamesPrerollOpen = false;
+
+        function gamesSetFrameLoading(on) {
+            if (zoneLoading) zoneLoading.hidden = !on;
+        }
+
+        function gamesHidePreroll() {
+            if (gamesPrerollTimer) {
+                clearInterval(gamesPrerollTimer);
+                gamesPrerollTimer = null;
+            }
+            const overlay = document.getElementById('gamePreroll');
+            if (overlay) overlay.hidden = true;
+            gamesPrerollOpen = false;
+            gamesPrerollRemaining = 0;
+        }
+
+        function gamesTickPreroll() {
+            const count = document.getElementById('gamePrerollCount');
+            const skip = document.getElementById('gamePrerollSkip');
+            if (count) count.textContent = String(Math.max(gamesPrerollRemaining, 0));
+            if (!skip) return;
+            if (gamesPrerollRemaining > 0) {
+                skip.disabled = true;
+                skip.textContent = `Starting in ${gamesPrerollRemaining}s`;
+            } else {
+                skip.disabled = false;
+                skip.textContent = 'Play now';
+            }
+        }
+
+        function gamesSkipPreroll() {
+            if (!gamesPrerollOpen || gamesPrerollRemaining > 0) return;
+            gamesHidePreroll();
+        }
+
+        function gamesShowPreroll(file) {
+            const ads = window.specterAds;
+            const cfg = ads && ads.config ? ads.config() : null;
+            const settings = (cfg && cfg.preRoll) || {};
+            if (!cfg || cfg.enabled === false || settings.enabled === false) return;
+            if (!ads.hasSlot || !ads.hasSlot('game-preroll')) return;
+
+            const every = Math.max(0, Number(settings.everySeconds) || 0);
+            if (every > 0) {
+                try {
+                    const last = Number(sessionStorage.getItem(GAMES_PREROLL_LAST) || 0);
+                    if (Date.now() - last < every * 1000) return;
+                } catch (e) {}
+            }
+
+            const overlay = document.getElementById('gamePreroll');
+            const slot = document.getElementById('gamePrerollSlot');
+            const name = document.getElementById('gamePrerollName');
+            if (!overlay || !slot) return;
+            // Fresh unit every launch, so each game gets its own impression
+            // instead of reusing the frame from the previous launch.
+            slot.textContent = '';
+            slot.classList.remove('has-ad');
+            if (!ads.renderInto(slot, 'game-preroll')) return;
+
+            const configured = Number(settings.seconds);
+            gamesPrerollRemaining = Number.isFinite(configured) && configured >= 0 ? Math.round(configured) : 5;
+            if (name) name.textContent = file.name;
+            overlay.hidden = false;
+            gamesPrerollOpen = true;
+            try { sessionStorage.setItem(GAMES_PREROLL_LAST, String(Date.now())); } catch (e) {}
+            gamesTickPreroll();
+
+            if (gamesPrerollTimer) clearInterval(gamesPrerollTimer);
+            if (gamesPrerollRemaining <= 0) {
+                gamesHidePreroll();
+                return;
+            }
+            gamesPrerollTimer = setInterval(() => {
+                gamesPrerollRemaining--;
+                gamesTickPreroll();
+                if (gamesPrerollRemaining <= 0) {
+                    clearInterval(gamesPrerollTimer);
+                    gamesPrerollTimer = null;
+                    setTimeout(() => {
+                        if (gamesPrerollOpen && gamesPrerollRemaining <= 0) gamesHidePreroll();
+                    }, 800);
+                }
+            }, 1000);
+        }
+
+        if (zoneFrame) {
+            zoneFrame.addEventListener('load', () => {
+                if (zoneFrame.src && !zoneFrame.src.startsWith('about:')) gamesSetFrameLoading(false);
             });
-            if (window.specterAds) window.specterAds.renderAll();
         }
 
         function openZone(file) {
@@ -7697,29 +7987,34 @@
             }
             if (file.url.startsWith("http")) {
                 window.open(file.url, "_blank");
-            } else {
-                const url = file.url.replace("{COVER_URL}", coverURL).replace("{HTML_URL}", htmlURL);
-                if (!zoneFrame || !zoneViewer.contains(zoneFrame) || zoneFrame.contentDocument === null) {
-                    zoneFrame = document.createElement("iframe");
-                    zoneFrame.id = "zoneFrame";
-                    zoneViewer.appendChild(zoneFrame);
-                }
-                zoneFrame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals allow-pointer-lock allow-orientation-lock allow-downloads');
-                zoneFrame.src = url;
-                document.getElementById('zoneName').textContent = file.name;
-                zoneViewer.dataset.zoneId = file.id;
-                zoneViewer.style.display = "flex";
-                zoneViewer.hidden = false;
+                return;
             }
+
+            const url = file.url.replace("{COVER_URL}", coverURL).replace("{HTML_URL}", htmlURL);
+            if (!zoneFrame) zoneFrame = document.getElementById('zoneFrame');
+            zoneFrame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals allow-pointer-lock allow-orientation-lock allow-downloads');
+            zoneFrame.setAttribute('allowfullscreen', '');
+            zoneFrame.setAttribute('allow', 'fullscreen; autoplay; gamepad; accelerometer; gyroscope; pointer-lock');
+            gamesSetFrameLoading(true);
+            zoneFrame.src = url;
+            gamesPrefetch(file);
+
+            document.getElementById('zoneName').textContent = file.name;
+            zoneViewer.dataset.zoneId = file.id;
+            zoneViewer.style.display = "flex";
+            zoneViewer.hidden = false;
+            document.body.classList.add('zone-open');
+            gamesShowPreroll(file);
         }
 
         function closeZone() {
+            gamesHidePreroll();
+            exitZoneFullscreen();
             zoneViewer.hidden = true;
             zoneViewer.style.display = "none";
-            if (zoneFrame && zoneFrame.parentNode) {
-                zoneViewer.removeChild(zoneFrame);
-            }
-            zoneFrame = null;
+            document.body.classList.remove('zone-open');
+            gamesSetFrameLoading(false);
+            if (zoneFrame) zoneFrame.src = 'about:blank';
             const url = new URL(window.location);
             url.searchParams.delete('id');
             history.pushState(null, '', url.toString());
@@ -7740,16 +8035,75 @@
             });
         }
 
+        // Fullscreen: the real Fullscreen API where it exists, plus a CSS
+        // fallback that also works in iPad Safari, which refuses iframe
+        // fullscreen requests.
+        function zoneIsFullscreen() {
+            return zoneViewer.classList.contains('zone-fullscreen') ||
+                document.fullscreenElement === zoneViewer ||
+                document.webkitFullscreenElement === zoneViewer;
+        }
+
+        function syncZoneFullscreenUI() {
+            const on = zoneIsFullscreen();
+            zoneViewer.classList.toggle('zone-fullscreen', on);
+            document.documentElement.classList.toggle('zone-fs-lock', on);
+            const btn = document.getElementById('zoneFullscreenBtn');
+            if (btn) btn.textContent = on ? 'Exit fullscreen' : 'Fullscreen';
+        }
+
         function fullscreenZone() {
-            if (zoneFrame.requestFullscreen) {
-                zoneFrame.requestFullscreen();
-            } else if (zoneFrame.webkitRequestFullscreen) {
-                zoneFrame.webkitRequestFullscreen();
-            }
+            if (!zoneViewer) return;
+            if (zoneIsFullscreen()) { exitZoneFullscreen(); return; }
+            zoneViewer.classList.add('zone-fullscreen');
+            document.documentElement.classList.add('zone-fs-lock');
+            syncZoneFullscreenUI();
+            try {
+                if (zoneViewer.requestFullscreen) {
+                    zoneViewer.requestFullscreen().catch(() => {});
+                } else if (zoneViewer.webkitRequestFullscreen) {
+                    zoneViewer.webkitRequestFullscreen();
+                }
+            } catch (e) { /* the CSS fullscreen class is already applied */ }
+        }
+
+        function exitZoneFullscreen() {
+            if (!zoneViewer) return;
+            zoneViewer.classList.remove('zone-fullscreen');
+            document.documentElement.classList.remove('zone-fs-lock');
+            syncZoneFullscreenUI();
+            try {
+                if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+                else if (document.webkitFullscreenElement && document.webkitExitFullscreen) document.webkitExitFullscreen();
+            } catch (e) {}
+        }
+
+        document.addEventListener('fullscreenchange', syncZoneFullscreenUI);
+        document.addEventListener('webkitfullscreenchange', syncZoneFullscreenUI);
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && zoneIsFullscreen()) exitZoneFullscreen();
+        });
+
+        // Rotating an iPad used to rebuild the whole carousel and re-fetch
+        // every cover. Only rebuild when the number of visible cards changes.
+        let gamesResizeTimer = null;
+        let gamesFeaturedVisible = 0;
+
+        function gamesVisibleFeaturedCount() {
+            const width = window.innerWidth;
+            if (width >= 1280) return 5;
+            if (width >= 900) return 4;
+            if (width >= 640) return 3;
+            return 2;
         }
 
         window.addEventListener('resize', () => {
-            if (gamesFeaturedGames.length > 0) gamesRenderFeatured();
+            if (!gamesFeaturedGames.length) return;
+            clearTimeout(gamesResizeTimer);
+            gamesResizeTimer = setTimeout(() => {
+                const next = gamesVisibleFeaturedCount();
+                if (next !== gamesFeaturedVisible) gamesRenderFeatured();
+            }, 250);
         });
     // ---END GAMES LOGIC---
     </script>
@@ -7776,10 +8130,41 @@
             return conf;
         }
 
+        function slotHtml(conf) {
+            return String(conf.html || '').trim();
+        }
+
+        function markRail(slot) {
+            const rail = slot.closest('.zone-rail');
+            if (!rail) return;
+            rail.classList.add('has-ad');
+            const viewer = document.getElementById('zoneViewer');
+            if (viewer) viewer.classList.add('zone-has-rail');
+        }
+
         function renderSlot(slot, conf) {
             conf = pickConf(conf);
+            const html = slotHtml(conf);
+            if (!html) return false;
             const width = conf.width || 728;
             const height = conf.height || 90;
+
+            if (conf.mode === 'direct') {
+                // Native banners ship their own container plus a script, so
+                // they have to live in the page instead of an ad iframe.
+                slot.textContent = '';
+                const holder = document.createElement('div');
+                holder.className = 'ad-native-holder';
+                holder.innerHTML = html;
+                slot.appendChild(holder);
+                makeScriptsLive(slot);
+                slot.style.maxWidth = width + 'px';
+                slot.classList.add('has-ad', 'ad-slot--native');
+                markRail(slot);
+                return true;
+            }
+
+            slot.textContent = '';
             const label = document.createElement('span');
             label.className = 'ad-slot-label';
             label.textContent = 'Advertisement';
@@ -7798,25 +8183,61 @@
             slot.appendChild(frame);
 
             const doc = frame.contentDocument;
+            if (!doc) return false;
             doc.open();
-            doc.write('<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;padding:0;overflow:hidden;background:transparent}</style></head><body>' + conf.html + '</body></html>');
+            doc.write('<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;padding:0;overflow:hidden;background:transparent}</style></head><body>' + html + '</body></html>');
             doc.close();
 
             slot.classList.add('has-ad');
+            markRail(slot);
             const card = slot.closest('.ad-inline-card');
             if (card) card.classList.add('has-ad');
+            return true;
         }
 
         let cfg = null;
+
+        function configFor(name) {
+            if (!cfg || cfg.enabled === false) return null;
+            const conf = (cfg.slots || {})[name];
+            if (!conf || conf.enabled === false) return null;
+            return slotHtml(conf) ? conf : null;
+        }
+
+        function hasSlot(name) {
+            return !!configFor(name);
+        }
 
         function renderAll() {
             if (!cfg || cfg.enabled === false) return;
             document.querySelectorAll('[data-ad-slot]').forEach(slot => {
                 if (slot.classList.contains('has-ad')) return;
-                const conf = (cfg.slots || {})[slot.dataset.adSlot];
-                if (!conf || !conf.enabled || !String(conf.html || '').trim()) return;
+                const conf = configFor(slot.dataset.adSlot);
+                if (!conf) return;
                 renderSlot(slot, conf);
             });
+        }
+
+        function renderInto(slot, name) {
+            const conf = configFor(name);
+            if (!slot || !conf) return false;
+            if (slot.classList.contains('has-ad')) return true;
+            return renderSlot(slot, conf);
+        }
+
+        // Raw HTML files keep pasted ad code readable: paste the Adsterra
+        // snippet straight into the file, no JSON escaping needed.
+        async function loadSlotFiles() {
+            const slots = Object.entries((cfg && cfg.slots) || {});
+            await Promise.all(slots.map(async ([name, conf]) => {
+                if (!conf || !conf.enabled || !conf.htmlFile || slotHtml(conf)) return;
+                try {
+                    const res = await fetch(conf.htmlFile, { cache: 'no-cache' });
+                    if (!res.ok) return;
+                    const text = (await res.text()).replace(/<!--[\s\S]*?-->/g, '').trim();
+                    if (text) conf.html = text;
+                } catch (e) { /* a missing ad file just leaves its slot empty */ }
+            }));
         }
 
         async function initAds() {
@@ -7828,6 +8249,8 @@
             }
             if (!cfg || cfg.enabled === false) return;
 
+            await loadSlotFiles();
+
             Object.entries(cfg.site || {}).forEach(([name, conf]) => {
                 if (!conf || !conf.enabled || !String(conf.html || '').trim()) return;
                 const tpl = document.createElement('template');
@@ -7837,10 +8260,10 @@
             });
 
             renderAll();
-            window.specterAds = { renderAll, config: () => cfg };
+            window.specterAds = { renderAll, renderInto, hasSlot, config: () => cfg };
         }
 
-        window.specterAds = { renderAll: () => {} };
+        window.specterAds = { renderAll: () => {}, renderInto: () => false, hasSlot: () => false, config: () => null };
 
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', initAds);

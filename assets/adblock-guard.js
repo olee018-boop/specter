@@ -116,7 +116,7 @@
         var live = function (group) {
           return Object.keys(group || {}).some(function (k) {
             var v = group[k];
-            return v && v.enabled && String(v.html || '').trim();
+            return v && v.enabled && (String(v.html || '').trim() || String(v.htmlFile || '').trim());
           });
         };
         return live(cfg.slots) || live(cfg.site);

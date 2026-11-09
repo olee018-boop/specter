@@ -1,12 +1,19 @@
 {
-  "_instructions": "Adsterra units, wired. \"mobile\" replaces the main unit on screens 720px wide or narrower. Set \"enabled\": false on any slot to switch it off without deleting its code.",
+  "_instructions": "Adsterra units, wired. \"mobile\" replaces the main unit on screens 720px wide or narrower. Set \"enabled\": false on any slot to switch it off without deleting its code. The side rails and the native banner read raw HTML files (data/ad-side-left.html, data/ad-side-right.html, data/ads-native.html), so you can paste Adsterra code without escaping it for JSON. preRoll controls the ad before a game: \"seconds\" is the countdown, \"everySeconds\": 0 shows it on every launch (use 180 to show it at most once every 3 minutes).",
   "_zones": {
     "leaderboard_728x90": "b1add1a27bf83c211614ecf3e77f43af (bauval.org/22)",
     "rectangle_300x250": "ad88936b92810709cc93375d38a05f02 (highrevenueformat.com)",
-    "site_scripts": ["abscloud.org/1/06bfae97aa590169003068e2b701dfdc", "bauval.org/14/76da11bb7cbb654923ac11c005aba488"]
+    "site_scripts": [
+      "abscloud.org/1/06bfae97aa590169003068e2b701dfdc",
+      "bauval.org/14/76da11bb7cbb654923ac11c005aba488"
+    ]
   },
   "enabled": true,
-  "clickPopunder": { "enabled": true, "chance": 0.22, "cooldownSeconds": 120 },
+  "clickPopunder": {
+    "enabled": true,
+    "chance": 0.22,
+    "cooldownSeconds": 120
+  },
   "slots": {
     "home-top": {
       "enabled": true,
@@ -91,6 +98,51 @@
         "height": 250,
         "html": "<script>atOptions = {'key':'ad88936b92810709cc93375d38a05f02','format':'iframe','height':250,'width':300,'params':{}};</script>\n<script src='https://www.highrevenueformat.com/ad88936b92810709cc93375d38a05f02/invoke.js'></script>"
       }
+    },
+    "game-preroll": {
+      "enabled": true,
+      "width": 728,
+      "height": 90,
+      "label": "Shown over the game while it loads, before play starts",
+      "html": "<script>atOptions = {'key':'b1add1a27bf83c211614ecf3e77f43af','format':'iframe','height':90,'width':728,'params':{}};</script>\n<script src='https://bauval.org/22/b1add1a27bf83c211614ecf3e77f43af'></script>",
+      "mobile": {
+        "width": 300,
+        "height": 250,
+        "html": "<script>atOptions = {'key':'ad88936b92810709cc93375d38a05f02','format':'iframe','height':250,'width':300,'params':{}};</script>\n<script src='https://www.highrevenueformat.com/ad88936b92810709cc93375d38a05f02/invoke.js'></script>"
+      }
+    },
+    "game-bottom": {
+      "enabled": true,
+      "width": 728,
+      "height": 90,
+      "label": "In the game player under the game (used when no side rail ad fits)",
+      "html": "<script>atOptions = {'key':'b1add1a27bf83c211614ecf3e77f43af','format':'iframe','height':90,'width':728,'params':{}};</script>\n<script src='https://bauval.org/22/b1add1a27bf83c211614ecf3e77f43af'></script>",
+      "mobile": {
+        "width": 300,
+        "height": 250,
+        "html": "<script>atOptions = {'key':'ad88936b92810709cc93375d38a05f02','format':'iframe','height':250,'width':300,'params':{}};</script>\n<script src='https://www.highrevenueformat.com/ad88936b92810709cc93375d38a05f02/invoke.js'></script>"
+      }
+    },
+    "game-side-left": {
+      "enabled": true,
+      "width": 160,
+      "height": 600,
+      "label": "Left of the game player. Paste an Adsterra 160x600 banner in data/ad-side-left.html",
+      "htmlFile": "data/ad-side-left.html"
+    },
+    "game-side-right": {
+      "enabled": true,
+      "width": 160,
+      "height": 600,
+      "label": "Right of the game player. Paste an Adsterra 160x600 banner in data/ad-side-right.html",
+      "htmlFile": "data/ad-side-right.html"
+    },
+    "games-native": {
+      "enabled": true,
+      "mode": "direct",
+      "width": 728,
+      "label": "Native banner under the games grid. Paste the Adsterra native banner code in data/ads-native.html",
+      "htmlFile": "data/ads-native.html"
     }
   },
   "site": {
@@ -104,5 +156,10 @@
       "label": "Adsterra site script 2 (bauval.org/14)",
       "html": "<script data-cfasync='false' src='https://bauval.org/14/76da11bb7cbb654923ac11c005aba488'></script>"
     }
+  },
+  "preRoll": {
+    "enabled": true,
+    "seconds": 5,
+    "everySeconds": 0
   }
 }
